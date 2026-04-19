@@ -1,0 +1,42 @@
+<h2>Dashboard</h2>
+
+<button onclick="sos()">SOS</button>
+<button onclick="voice()">Voice SOS</button>
+
+<video id="v" autoplay muted width="300"></video>
+
+<script>
+function sos(){
+ navigator.geolocation.getCurrentPosition(p=>{
+  let loc=p.coords.latitude+","+p.coords.longitude;
+  fetch("/sos",{method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({location:loc})})
+  .then(r=>r.json())
+  .then(d=>alert(d.msg+"\n"+d.loc));
+ });
+}
+
+function voice(){
+ let r=new (window.SpeechRecognition||window.webkitSpeechRecognition)();
+ r.start();
+ r.onresult=e=>{
+  let t=e.results[0][0].transcript.toLowerCase();
+  if(t.includes("help")){
+    record();
+  }
+ }
+}
+
+async function record(){
+ let s=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+ document.getElementById("v").srcObject=s;
+ let rec=new MediaRecorder(s);
+ rec.start();
+ setTimeout(()=>{rec.stop();sos();},5000);
+}
+
+window.addEventListener("beforeunload",()=>{
+ navigator.sendBeacon("/poweroff");
+});
+</script>
